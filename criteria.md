@@ -25,9 +25,10 @@ Given a query that matches at least one listing, the agent completes all three
 tool calls and returns a fit card — in at least 4 of 5 tries.
 
 **Why this target:**
-<!-- Why 4 of 5 and not 5 of 5? Something about your search, probably —
-     "my search is a plain keyword match and some phrasings will miss" is a
-     real answer. -->
+The search tool uses keyword matching, so different phrasings of a valid query
+may not always match the wording or style tags in the listings. A 4 of 5 target
+allows for one search miss while still requiring the full tool sequence to work
+reliably for matching queries.
 
 ---
 
@@ -37,66 +38,53 @@ Given a query that matches no listings, the agent stops before calling
 `suggest_outfit` and returns a message naming what to change — 5 of 5 tries.
 
 **Why this target:**
-<!-- Why is 5 of 5 reasonable here when criterion 1 isn't? What's different
-     about this path? -->
+Unlike matching quality, this behavior is controlled by a deterministic branch
+in the planning loop. Whenever `search_listings` returns an empty list, the
+agent should always follow the same stop path, so 5 of 5 is a reasonable target.
 
 ---
 
-## 3. Something about state
+## 3. The selected item stays consistent between tools
 
-<!-- YOU WRITE THIS ONE.
+Given a query that returns at least one listing, the item stored in
+`session["selected_item"]` has the same listing ID as the `new_item` received
+by `suggest_outfit` — in 5 of 5 tries.
 
-     How would you know that the item your search found is the same item the
-     next tool received? Name something countable or observable.
-
-     This is the criterion people find hardest, because state failure doesn't
-     look like state failure — it looks like a tool problem. Something that
-     compares session["selected_item"] against what actually reached
-     suggest_outfit is the shape you're after. -->
-
-
-
-**Why this target:**
-
-
+**Why this target:**  
+The session is the source of truth between tool calls, and listing IDs are
+unique and directly comparable. Unlike model-generated text, passing state
+between tools is deterministic, so the selected item's ID should remain
+consistent in every run.
 
 ---
 
-## 4. Something about the fit card
+## 4. The fit card preserves the selected listing's details
 
-<!-- YOU WRITE THIS ONE.
+Given a successful run, the fit card correctly includes the selected item's
+price and platform without changing or inventing either detail — in at least
+4 of 5 tries.
 
-     The fit card calls a model, so the same input can produce different words
-     each time. That's not a bug — it's the nature of the tool. So what would
-     make it acceptable?
-
-     Think about what you'd actually be unhappy to see. A caption that never
-     mentions the price? Two different items producing the same opening
-     sentence? A card longer than a caption anyone would post? Any of those can
-     be turned into a number. -->
-
-
-
-**Why this target:**
-
-
+**Why this target:**  
+The fit card is model-generated, so its wording can vary between runs even when
+the input is the same. However, the price and platform come directly from the
+selected listing and should remain grounded in that data. A 4 of 5 target allows
+for occasional model variation while requiring these important listing details
+to be preserved reliably.
 
 ---
 
-## 5. Your choice
+## 5. Outfit suggestions use the user's existing wardrobe
 
-<!-- YOU WRITE THIS ONE TOO.
+Given a successful run with a non-empty wardrobe, the outfit suggestion clearly
+uses at least one item from the user's provided wardrobe alongside the selected
+marketplace item — in at least 4 of 5 tries.
 
-     Pick something you actually care about getting right. Speed, the empty
-     wardrobe path, what happens when the model can't be reached, whether the
-     search respects a price ceiling — anything, as long as it names a number
-     or an observable outcome. -->
-
-
-
-**Why this target:**
-
-
+**Why this target:**  
+The purpose of `suggest_outfit` is to show how a new marketplace item can work
+with clothing the user already owns. Because the suggestion is model-generated,
+the exact outfit can vary, but at least 4 of 5 runs should ground the
+recommendation in an actual wardrobe item rather than inventing an entirely new
+outfit.
 
 ---
 
