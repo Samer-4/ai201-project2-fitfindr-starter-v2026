@@ -152,10 +152,12 @@ This outfit balances proportions and plays into the Y2K aesthetic. The fitted si
 **The three tools, tested one at a time**
 
 ```
+```
 $ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
 
 [{'id': 'lst_002', 'title': 'Y2K Baby Tee — Butterfly Print', 'description': 'Super cute early 2000s baby tee with butterfly graphic. Fitted crop length. Tag says medium but fits like a small.', 'category': 'tops', 'style_tags': ['y2k', 'vintage', 'graphic tee', 'cottagecore'], 'size': 'S/M', 'condition': 'excellent', 'price': 18.0, 'colors': ['white', 'pink', 'purple'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_006', 'title': 'Graphic Tee — 2003 Tour Bootleg Style', 'description': 'Vintage-style bootleg tee with faded graphic. Slightly boxy fit. 100% cotton, soft and worn-in.', 'category': 'tops', 'style_tags': ['graphic tee', 'vintage', 'grunge', 'streetwear', 'band tee'], 'size': 'L', 'condition': 'good', 'price': 24.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_017', 'title': 'Mesh Long-Sleeve Top — Black', 'description': 'Sheer black mesh long-sleeve. Great for layering under a graphic tee or over a bralette. Stretchy material, fits true to size.', 'category': 'tops', 'style_tags': ['y2k', 'grunge', 'goth', 'layering'], 'size': 'S/M', 'condition': 'excellent', 'price': 15.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_033', 'title': 'Vintage Band Tee — Faded Grey', 'description': 'Faded grey band-style tee with distressed graphic. Crew neck. Fits boxy. Well-loved but no holes or major damage.', 'category': 'tops', 'style_tags': ['vintage', 'grunge', 'band tee', 'graphic tee', 'streetwear'], 'size': 'L', 'condition': 'fair', 'price': 19.0, 'colors': ['grey', 'charcoal'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_011', 'title': 'Low-Rise Cargo Pants — Khaki', 'description': 'Y2K era low-rise cargo pants. Lots of pockets. Khaki color, slightly distressed at the hems. Great for layering with a long tee.', 'category': 'bottoms', 'style_tags': ['y2k', 'cargo', '2000s', 'streetwear'], 'size': 'W29', 'condition': 'fair', 'price': 27.0, 'colors': ['khaki', 'tan'], 'brand': None, 'platform': 'poshmark'}, {'id': 'lst_012', 'title': 'Oversized Crewneck Sweatshirt — Vintage Navy', 'description': 'Perfectly faded navy crewneck. Genuinely vintage — not manufactured distressed. Ribbed cuffs and hem. No graphics, clean.', 'category': 'tops', 'style_tags': ['vintage', 'basics', 'oversized', 'classic'], 'size': 'XL (fits oversized)', 'condition': 'good', 'price': 20.0, 'colors': ['navy'], 'brand': None, 'platform': 'thredUp'}, {'id': 'lst_015', 'title': 'Vintage Graphic Hoodie — Faded Black', 'description': 'Faded black pullover hoodie with barely-visible vintage graphic on the chest. Cozy interior. Some pilling but adds to the worn-in look.', 'category': 'tops', 'style_tags': ['vintage', 'grunge', 'graphic', 'streetwear'], 'size': 'L', 'condition': 'fair', 'price': 26.0, 'colors': ['black', 'charcoal'], 'brand': None, 'platform': 'depop'}]
 
+```
 ```
 $ python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe; item={'title':'Y2K Baby Tee — Butterfly Print','category':'tops','colors':['white','pink'],'style_tags':['y2k','vintage','graphic tee','cottagecore']}; print(suggest_outfit(item, get_example_wardrobe()))"
 
@@ -171,10 +173,12 @@ $ python -c "from tools import suggest_outfit; from utils.data_loader import get
 This look leans directly into the Y2K aesthetic. The fitted silhouette of the baby tee creates a flattering, balanced contrast against the relaxed, baggy fit of the dark wash jeans. The chunky white sneakers tie in the casual streetwear vibe, while the black crossbody bag and optional cropped zip hoodie add effortless everyday functionality.
 
 ```
+```
 $ python -c "from tools import create_fit_card; item={'title':'Y2K Baby Tee — Butterfly Print','price':18.0,'platform':'depop'}; print(create_fit_card('Pair the baby tee with baggy dark-wash jeans and chunky white sneakers for a Y2K streetwear look.', item))"
 
 Channel ultimate Y2K streetwear energy with this effortless everyday look. Pair the Y2K Baby Tee — Butterfly Print with baggy dark-wash jeans and chunky white sneakers. Grab this piece now for just $18.00 exclusively on depop.
 
+```
 ---
 
 ## How I Used AI
