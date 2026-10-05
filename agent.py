@@ -60,56 +60,96 @@ def run_agent(query: str, wardrobe: dict) -> dict:
                   get_empty_wardrobe() from utils/data_loader.py.
 
     Returns:
-        The session dict. **Check session["error"] first** — if it isn't None,
+        The session dict. Check session["error"] first — if it isn't None,
         the run ended early and the later fields will still be None.
 
-    ─────────────────────────────────────────────────────────────────────────
-    TODO — build this, following the branch rule you wrote in Milestone 2.
-
-      1. Start a session with new_session().
-
-      2. Count the times round the loop, and call trace.check_iterations(count)
-         on each one before you go again. It raises when the count passes
-         MAX_ITERATIONS in config.py — see trace.py.
-
-      3. Parse the query into a description, a size, and a max_price. Regex,
-         string splitting, or asking the model are all fine — say which you
-         chose in your README. Put the result in session["parsed"].
-
-      4. Call search_listings() with what you parsed.
-         Put the results in session["search_results"].
-
-         ⚠️ THIS IS THE BRANCH. If nothing came back:
-              - put a message in session["error"] saying what the user could
-                change — "No results" is not that message
-              - return the session
-              - do NOT call suggest_outfit with nothing
-
-      5. Choose an item — the first result is fine. Put it in
-         session["selected_item"].
-
-      6. Call suggest_outfit() with the selected item and the wardrobe.
-         Put the result in session["outfit_suggestion"].
-
-      7. Call create_fit_card() with the outfit and the item.
-         Put the result in session["fit_card"].
-
-      8. Return the session.
-
-    ─────────────────────────────────────────────────────────────────────────
-    IN UNIT 4 you come back and add two things:
-
-      • Trace calls. One per step. `trace.step("search_listings", inputs=...,
-        returned=...)` — see trace.py. Your README needs the output.
-
-      • A handler for ModelUnavailable, so a bad key produces a message rather
-        than a stack trace. The import is already at the top of this file.
+    Unit 3 flow:
+      1. Start a session.
+      2. Parse the query.
+      3. Search listings.
+      4. Stop if the search returns nothing.
+      5. Select the first result.
+      6. Suggest an outfit.
+      7. Create a fit card.
+      8. Return the completed session.
     """
+
     session = new_session(query, wardrobe)
 
-    # TODO: delete these two lines and build the loop.
-    session["error"] = "The planning loop isn't built yet — see the TODO in agent.py."
+    # Parse the query
+    description = query
+    size = None
+    max_price = None
+
+    words = query.split()
+
+    # Parse a maximum price from a phrase like "under $30"
+    if "under" in words:
+        index = words.index("under")
+
+        if index + 1 < len(words):
+            max_price = float(words[index + 1].replace("$", ""))
+            description = " ".join(words[:index])
+
+    # Parse a size from a phrase like "size M"
+    words = description.split()
+
+    if "size" in words:
+        index = words.index("size")
+
+        if index + 1 < len(words):
+            size = words[index + 1]
+            description = " ".join(words[:index])
+
+    session["parsed"] = {
+        "description": description,
+        "size": size,
+        "max_price": max_price,
+    }
+
+    # Search for matching listings
+    session["search_results"] = search_listings(
+        session["parsed"]["description"],
+        session["parsed"]["size"],
+        session["parsed"]["max_price"],
+    )
+
+    # Branch: stop if nothing was found
+    if not session["search_results"]:
+        session["error"] = (
+            "No matching listings found. Try changing the description, "
+            "size, or maximum price."
+        )
+        return session
+
+    # Select the best search result
+    session["selected_item"] = session["search_results"][0]
+
+    # Suggest an outfit using the selected item
+    session["outfit_suggestion"] = suggest_outfit(
+        session["selected_item"],
+        session["wardrobe"],
+    )
+
+    # Create a fit card using the outfit suggestion
+    session["fit_card"] = create_fit_card(
+        session["outfit_suggestion"],
+        session["selected_item"],
+    )
+
     return session
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# UNIT 4 — COME BACK AND ADD:
+#
+# • Trace calls. One per step:
+#   trace.step("search_listings", inputs=..., returned=...)
+#   See trace.py. README needs the output.
+#
+# • A handler for ModelUnavailable so a bad API key produces
+#   a useful message instead of a stack trace.
+# ─────────────────────────────────────────────────────────────────────────────
 
 
 # ── running it directly ───────────────────────────────────────────────────────
@@ -117,11 +157,18 @@ def run_agent(query: str, wardrobe: dict) -> dict:
 def _show(session: dict) -> None:
     if session["error"]:
         print(f"  stopped: {session['error']}")
-        print(f"  fit_card is {session['fit_card']!r} — it should still be None here")
+        print(
+            f"  fit_card is {session['fit_card']!r} "
+            "— it should still be None here"
+        )
         return
 
     item = session["selected_item"] or {}
-    print(f"  found:    {item.get('title')} — ${item.get('price')} on {item.get('platform')}")
+
+    print(
+        f"  found:    {item.get('title')} — "
+        f"${item.get('price')} on {item.get('platform')}"
+    )
     print(f"  outfit:   {session['outfit_suggestion']}")
     print(f"  fit card: {session['fit_card']}")
 
@@ -130,16 +177,20 @@ if __name__ == "__main__":
     from utils.data_loader import get_example_wardrobe
 
     print("=== A query the data can match ===")
-    _show(run_agent(
-        query="looking for a vintage graphic tee under $30",
-        wardrobe=get_example_wardrobe(),
-    ))
+    _show(
+        run_agent(
+            query="looking for a vintage graphic tee under $30",
+            wardrobe=get_example_wardrobe(),
+        )
+    )
 
     print("\n=== A query it can't ===")
-    _show(run_agent(
-        query="designer ballgown size XXS under $5",
-        wardrobe=get_example_wardrobe(),
-    ))
+    _show(
+        run_agent(
+            query="designer ballgown size XXS under $5",
+            wardrobe=get_example_wardrobe(),
+        )
+    )
 
     print(
         "\nThe second one should stop before the fit card. If both paths look "
