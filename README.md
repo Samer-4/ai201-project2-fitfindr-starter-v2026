@@ -39,7 +39,13 @@
 
 ## What This Does
 
-<!-- Three or four sentences: what a user asks for, and what they get back. -->
+FitFindr is a shopping and styling agent that helps a user find a marketplace
+item and build an outfit around it. The user describes what they are looking
+for, optionally including a size and maximum price. FitFindr searches the
+available listings, selects the best result, suggests an outfit using pieces
+from the user's existing wardrobe, and creates a short fit-card caption. If no
+listing matches the search, the agent stops and tells the user what they can
+change in their query.
 
 
 
@@ -59,25 +65,24 @@
 
 ### `search_listings`
 
-- **What it does:**
-- **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
-- **Returns:**
-- **When it has nothing:**
+- **Purpose:** Search marketplace listings for items matching a description, with optional size and maximum price filters.
+- **Inputs:** `description: str`, `size: str | None`, `max_price: float | None`
+- **Returns:** `list[dict]` of matching listings, ordered with the best matches first.
+- **Empty case:** Returns an empty list `[]` when no listings match.
 
 ### `suggest_outfit`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Suggests an outfit for a selected marketplace item using pieces from the user's existing wardrobe.
+- **Inputs:** `new_item: dict`, `wardrobe: dict`
+- **Returns:** `str` containing a non-empty outfit suggestion.
+- **When it has nothing:** If the wardrobe is empty, returns general styling advice for the new item instead of referencing owned pieces.
 
 ### `create_fit_card`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
-
+- **What it does:** Creates a short fit-card caption describing the completed outfit and selected marketplace item.
+- **Inputs:** `outfit: str`, `new_item: dict`
+- **Returns:** `str` containing a 2–4 sentence fit-card caption that mentions the item, price, platform, and a specific vibe.
+- **When it has nothing:** If the outfit is empty, returns a descriptive message explaining that a fit card could not be created because no outfit suggestion was provided.
 ---
 
 ## Planning Loop
@@ -95,11 +100,23 @@
 
 **Branch rule:**
 
+After `search_listings()` runs:
+
+- If the search returns no results, store a useful message in the session and stop the agent. Do not call `suggest_outfit()`.
+- If the search returns results, select the first result, store it in the session, and pass that selected item to `suggest_outfit()`.
+
 **Where it lives:** `agent.py::run_agent`
 
-**How the query is parsed:** <!-- regex, string splitting, or asking the model — say which -->
+**How the query is parsed:** The query is parsed using string splitting. The
+agent looks for `under` followed by a price and `size` followed by a size value,
+then removes those parts from the remaining description.
 
-**What moves through the session:** <!-- which fields, in what order -->
+**What moves through the session:** The parsed query is stored in
+`session["parsed"]`, then the search results are stored in
+`session["search_results"]`. The first result becomes
+`session["selected_item"]`, which is read by `suggest_outfit()`. Its result is
+stored in `session["outfit_suggestion"]` and then read by `create_fit_card()`,
+whose final result is stored in `session["fit_card"]`.
 
 ---
 
@@ -113,26 +130,50 @@
 **One full query**
 
 ```
-$ python app.py ask '...'
+$ python app.py ask 'vintage graphic tee under $30'
 
-```
+  Found:    Y2K Baby Tee — Butterfly Print — $18.0 on depop
+
+  Outfit:   **Outfit Recommendation:**
+
+*   **Top:** Y2K Baby Tee — Butterfly Print (New Item)
+*   **Bottoms:** Baggy straight-leg jeans, dark wash
+*   **Outerwear:** Black cropped zip hoodie
+*   **Shoes:** Chunky white sneakers
+*   **Accessories:** Black crossbody bag
+
+**Why it works:**
+This outfit balances proportions and plays into the Y2K aesthetic. The fitted silhouette of the baby tee pairs effortlessly with the relaxed, baggy fit of the dark wash jeans. Layering the black cropped zip hoodie on top keeps the midriff-baring Y2K vibe alive while adding warmth and streetwear edge. Finally, the chunky white sneakers tie the look together by echoing the white in the baby tee, complemented by the practical black crossbody bag.
+
+  Fit card: Channel total Y2K nostalgia with this fitted butterfly baby tee, available now on Depop for just $18.00. Paired with baggy dark wash jeans, a cropped zip hoodie, and chunky white sneakers, this look effortlessly balances fitted and relaxed streetwear proportions.
+
+0 model calls this session, 2 served from cache
 
 **The three tools, tested one at a time**
 
 ```
 $ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
 
-```
+[{'id': 'lst_002', 'title': 'Y2K Baby Tee — Butterfly Print', 'description': 'Super cute early 2000s baby tee with butterfly graphic. Fitted crop length. Tag says medium but fits like a small.', 'category': 'tops', 'style_tags': ['y2k', 'vintage', 'graphic tee', 'cottagecore'], 'size': 'S/M', 'condition': 'excellent', 'price': 18.0, 'colors': ['white', 'pink', 'purple'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_006', 'title': 'Graphic Tee — 2003 Tour Bootleg Style', 'description': 'Vintage-style bootleg tee with faded graphic. Slightly boxy fit. 100% cotton, soft and worn-in.', 'category': 'tops', 'style_tags': ['graphic tee', 'vintage', 'grunge', 'streetwear', 'band tee'], 'size': 'L', 'condition': 'good', 'price': 24.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_017', 'title': 'Mesh Long-Sleeve Top — Black', 'description': 'Sheer black mesh long-sleeve. Great for layering under a graphic tee or over a bralette. Stretchy material, fits true to size.', 'category': 'tops', 'style_tags': ['y2k', 'grunge', 'goth', 'layering'], 'size': 'S/M', 'condition': 'excellent', 'price': 15.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_033', 'title': 'Vintage Band Tee — Faded Grey', 'description': 'Faded grey band-style tee with distressed graphic. Crew neck. Fits boxy. Well-loved but no holes or major damage.', 'category': 'tops', 'style_tags': ['vintage', 'grunge', 'band tee', 'graphic tee', 'streetwear'], 'size': 'L', 'condition': 'fair', 'price': 19.0, 'colors': ['grey', 'charcoal'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_011', 'title': 'Low-Rise Cargo Pants — Khaki', 'description': 'Y2K era low-rise cargo pants. Lots of pockets. Khaki color, slightly distressed at the hems. Great for layering with a long tee.', 'category': 'bottoms', 'style_tags': ['y2k', 'cargo', '2000s', 'streetwear'], 'size': 'W29', 'condition': 'fair', 'price': 27.0, 'colors': ['khaki', 'tan'], 'brand': None, 'platform': 'poshmark'}, {'id': 'lst_012', 'title': 'Oversized Crewneck Sweatshirt — Vintage Navy', 'description': 'Perfectly faded navy crewneck. Genuinely vintage — not manufactured distressed. Ribbed cuffs and hem. No graphics, clean.', 'category': 'tops', 'style_tags': ['vintage', 'basics', 'oversized', 'classic'], 'size': 'XL (fits oversized)', 'condition': 'good', 'price': 20.0, 'colors': ['navy'], 'brand': None, 'platform': 'thredUp'}, {'id': 'lst_015', 'title': 'Vintage Graphic Hoodie — Faded Black', 'description': 'Faded black pullover hoodie with barely-visible vintage graphic on the chest. Cozy interior. Some pilling but adds to the worn-in look.', 'category': 'tops', 'style_tags': ['vintage', 'grunge', 'graphic', 'streetwear'], 'size': 'L', 'condition': 'fair', 'price': 26.0, 'colors': ['black', 'charcoal'], 'brand': None, 'platform': 'depop'}]
 
 ```
-$ python -c "from tools import suggest_outfit; ..."
+$ python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe; item={'title':'Y2K Baby Tee — Butterfly Print','category':'tops','colors':['white','pink'],'style_tags':['y2k','vintage','graphic tee','cottagecore']}; print(suggest_outfit(item, get_example_wardrobe()))"
+
+**Outfit Recommendation:**
+
+*   **Top:** Y2K Baby Tee — Butterfly Print (New item)
+*   **Bottoms:** Baggy straight-leg jeans, dark wash
+*   **Footwear:** Chunky white sneakers
+*   **Outerwear:** Black cropped zip hoodie (worn open or carried)
+*   **Accessories:** Black crossbody bag
+
+**Why it works:**
+This look leans directly into the Y2K aesthetic. The fitted silhouette of the baby tee creates a flattering, balanced contrast against the relaxed, baggy fit of the dark wash jeans. The chunky white sneakers tie in the casual streetwear vibe, while the black crossbody bag and optional cropped zip hoodie add effortless everyday functionality.
 
 ```
+$ python -c "from tools import create_fit_card; item={'title':'Y2K Baby Tee — Butterfly Print','price':18.0,'platform':'depop'}; print(create_fit_card('Pair the baby tee with baggy dark-wash jeans and chunky white sneakers for a Y2K streetwear look.', item))"
 
-```
-$ python -c "from tools import create_fit_card; ..."
-
-```
+Channel ultimate Y2K streetwear energy with this effortless everyday look. Pair the Y2K Baby Tee — Butterfly Print with baggy dark-wash jeans and chunky white sneakers. Grab this piece now for just $18.00 exclusively on depop.
 
 ---
 
@@ -147,15 +188,15 @@ $ python -c "from tools import create_fit_card; ..."
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- **What I asked for:** I used Wispr Flow to verbally explain my ideas and reasoning to an LLM, then asked the LLM to help organize and format my responses so they matched the structure required by the assignment.
+- **What came back:** The LLM turned my explanations into properly structured Markdown and code while preserving the ideas I had described and helping avoid formatting and syntax errors.
+- **What I changed:** I reviewed the generated responses and adjusted the wording and formatting so they more closely reflected my own reasoning and the specific requirements of the assignment.
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- **What I asked for:** I used AI to help design the prompt for `suggest_outfit()` so the model would combine the selected marketplace item with the user's existing wardrobe.
+- **What came back:** The initial prompt instructed the model to use at least one provided wardrobe item and not invent clothing that the user owns. Testing produced an outfit using actual pieces from the example wardrobe.
+- **What I changed:** I added a separate empty-wardrobe path so the model gives general styling advice without claiming that the user owns any additional clothing.
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
