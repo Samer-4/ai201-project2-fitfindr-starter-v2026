@@ -17,6 +17,7 @@ import config
 import trace
 from tools import search_listings, suggest_outfit, create_fit_card
 from generate import ModelUnavailable
+from mcp_client import call_tool
 
 
 # ── session state ─────────────────────────────────────────────────────────────
@@ -108,10 +109,13 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     }
 
     # Search for matching listings
-    session["search_results"] = search_listings(
-        session["parsed"]["description"],
-        session["parsed"]["size"],
-        session["parsed"]["max_price"],
+    session["search_results"] = call_tool(
+    "search_listings",
+    {
+        "description": session["parsed"]["description"],
+        "size": session["parsed"]["size"],
+        "max_price": session["parsed"]["max_price"],
+    },
     )
 
     # Branch: stop if nothing was found
