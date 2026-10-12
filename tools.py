@@ -272,6 +272,7 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     - Describe a specific overall vibe for the outfit.
     - Base the caption only on the item and outfit provided above.
     - Do not invent additional clothing or listing details.
+    - Do not claim the item is exclusive to a platform or make availability claims unless explicitly supported by the listing.
     - Keep it concise and natural.
     """
 
