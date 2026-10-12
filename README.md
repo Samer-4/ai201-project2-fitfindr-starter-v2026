@@ -211,63 +211,164 @@ Channel ultimate Y2K streetwear energy with this effortless everyday look. Pair 
 
 ## Run Log — Before
 
-<!-- Five criteria, five tries each, in this exact format.
+### Baseline Evaluation
 
-     Five, because your criteria are written out of five. Mark each try PASS
-     or FAIL, count the passes, and read that count against your target — a
-     row targeting 4 of 5 with three PASS cells is MISSED (3/5).
-
-     `python run_eval.py --label before` runs everything and writes the table
-     into results/. Paste it here and fill in the verdicts. -->
+- Command: `python run_eval.py --label before`
+- Date: October 12, 2026
+- Test configuration: 5 tries per criterion, caching disabled
+- Total executions: 30 (25 criterion runs + 5 diagnostic runs)
+- Model calls: 50
+- Crashes: 0
+- Results: `results/run_2026-10-12_1124_before.md`
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. Three-tool completion | 4/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. Empty-search handling | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. Selected-item consistency | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5)* |
+| 4. Price and platform accuracy | 4/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Existing wardrobe usage | 4/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
-**Real output from one try**, pasted as text, naming the file and function
-that produced it:
+*Criterion 3 was verified separately using five deterministic runs with `unittest.mock.patch`. The original evaluation traces did not explicitly capture the item ID received by `suggest_outfit`.
 
+### Evidence From Actual Runs
+
+**Criterion 1 — Three-tool completion**
+
+Source: `agent.py::run_agent`, Try 1
+
+The agent retrieved 10 listings, called `suggest_outfit`, and generated a 326-character fit card.
+
+**Criterion 2 — Empty-search handling**
+
+Source: `agent.py::run_agent`, Try 1
+
+```text
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
+
+No matching listings found. Try changing the description,
+size, or maximum price.
 ```
 
+No downstream tools were called.
+
+**Criterion 3 — Selected-item consistency**
+
+Source: `agent.py::run_agent`, separate mocked verification
+
+```text
+Try 1: PASS (lst_002 → lst_002)
+Try 2: PASS (lst_002 → lst_002)
+Try 3: PASS (lst_002 → lst_002)
+Try 4: PASS (lst_002 → lst_002)
+Try 5: PASS (lst_002 → lst_002)
 ```
 
----
+Both model-dependent functions were mocked to verify the actual item ID passed into `suggest_outfit` without additional API calls.
+
+**Criterion 4 — Price and platform accuracy**
+
+Source: `tools.py::create_fit_card`, Try 2
+
+Selected listing: Y2K Baby Tee — Butterfly Print, $18.00, Depop.
+
+```text
+Channel the ultimate Y2K streetwear vibe by pairing this
+Y2K Baby Tee — Butterfly Print with baggy dark-wash jeans,
+a vintage black denim jacket, chunky white sneakers, and
+a black crossbody bag. You can find this piece on Depop
+for just $18.00. It's an effortless look that balances a
+fitted silhouette with relaxed proportions for everyday
+retro style.
+```
+
+All five fit cards preserved the correct $18.00 price and Depop platform.
+
+**Criterion 5 — Existing wardrobe usage**
+
+Source: `tools.py::suggest_outfit`, Try 1
+
+```text
+Top: Y2K Baby Tee — Butterfly Print (New Item)
+Bottoms: Baggy straight-leg jeans, dark wash
+Outerwear: Vintage black denim jacket
+Shoes: Chunky white sneakers
+Accessories: Black crossbody bag
+```
+
+The outfit uses four verified wardrobe items: `w_001`, `w_006`, `w_007`, and `w_010`. All five runs included these existing pieces.
+
+### Baseline Observations
+
+All five criteria met their predefined targets. The evaluation also identified an issue outside the original criteria: some generated fit cards described items as "exclusively" available on Depop, although the listing data did not establish exclusivity.
+
+This indicates that the model can preserve required facts while introducing unsupported claims. The issue is a candidate for the measured improvement in Milestone 5.
+
+The five criteria were tested using the same matching query for the successful-path scenarios, so these results do not establish reliability across different listings or query types.
+
 
 ## Verdicts and Diagnoses
 
-<!-- MET or MISSED per criterion against LAST UNIT's target, plus a sentence on
-     how you decided.
 
-     Then, for every miss: which of the four places it happened — a tool, the
-     loop's branch, the session, or the model's output — AND the mechanism.
+### Criterion Results
 
-     Not a diagnosis:  "The fit card was bad."
-     A diagnosis:      "The fit card criterion missed on 2 of 5 items. Both had
-                        an empty brand field. My prompt puts the brand in the
-                        first sentence, so the card opened with a blank and read
-                        like a fragment. The tool worked; the prompt assumed a
-                        field that isn't always there."
+**Criterion 1 — Three-tool completion: MET (5/5)**
 
-     Look for a pattern. Three misses on the same tool is one problem, not
-     three. -->
+All five runs successfully executed `search_listings` through MCP, followed by `suggest_outfit` and `create_fit_card`. Each run produced a non-empty fit card.
 
-| # | Criterion | Target | Verdict | How I decided |
-|---|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
+No failures were observed. However, all five runs used the same query, so this does not establish reliability across different search phrases.
 
-**Diagnoses**
+**Criterion 2 — Empty-search handling: MET (5/5)**
 
+All five runs returned an empty search result and stopped before calling `suggest_outfit`.
 
+The agent consistently returned an actionable message recommending changes to the description, size, or maximum price. No failures were observed.
 
----
+**Criterion 3 — Selected-item consistency: MET (5/5)**
+
+Five separate mocked tests confirmed that the ID stored in `session["selected_item"]` matched the ID received by `suggest_outfit`.
+
+All five comparisons returned `lst_002 == lst_002`.
+
+This was verified through a separate deterministic test because the original evaluation traces did not record the IDs passed between tools. The model-dependent functions were mocked for these tests.
+
+**Criterion 4 — Price and platform accuracy: MET (5/5)**
+
+All five generated fit cards correctly preserved the selected listing's price ($18.00) and platform (Depop).
+
+No failures occurred against the original criterion.
+
+However, one generated caption described the item as available "exclusively on depop." The dataset established the platform but did not establish exclusivity.
+
+This is an unsupported claim introduced during `create_fit_card`, indicating that preserving required details does not guarantee that every generated claim is grounded.
+
+**Criterion 5 — Existing wardrobe usage: MET (5/5)**
+
+All five outfit suggestions referenced the selected marketplace item alongside existing wardrobe pieces.
+
+The suggestions consistently included:
+- Baggy straight-leg jeans, dark wash (`w_001`)
+- Vintage black denim jacket (`w_006`)
+- Chunky white sneakers (`w_007`)
+- Black crossbody bag (`w_010`)
+
+No failures were observed against the criterion.
+
+### Overall Diagnosis
+
+All five predefined acceptance criteria were met.
+
+The main issue identified outside the original criteria was an unsupported exclusivity claim in the generated fit card.
+
+- **Affected stage:** `create_fit_card`
+- **Failure mechanism:** The language model introduced a marketplace availability claim not supported by the listing data.
+- **Likely cause:** The generation prompt does not explicitly prohibit exclusivity claims.
+- **Proposed improvement:** Update the fit-card prompt to prohibit unsupported availability or exclusivity claims, then rerun the same evaluations.
+
+The original acceptance criteria will remain unchanged. The improvement will be evaluated using the same five scenarios and targets.
+
 
 ## Loop Trace
 
@@ -287,62 +388,128 @@ Command: `python app.py ask 'vintage graphic tee under $30' --trace`
 
 **Happy path**
 
-```
+Command: `python app.py ask 'vintage graphic tee under $30' --trace`
 
+The agent successfully executes the following sequence:
+
+```text
+[1] search_listings (via MCP) -> 10 matching listings
+[2] suggest_outfit -> outfit using existing wardrobe items
+[3] create_fit_card -> completed fit-card caption
 ```
 
 **Empty search**
 
+Command: `python app.py ask 'designer ballgown size XXS under $5' --trace`
+
+```text
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
 ```
 
+The agent stops after the MCP search and returns:
+
+```text
+No matching listings found. Try changing the description, size, or maximum price.
 ```
 
-**On the MCP move:** <!-- what changed in your code, and whether anything
-behaved differently afterwards. If the rewire didn't work, say exactly where it
-broke — the error text and the last thing that worked. That earns the point in
-full. -->
+Neither `suggest_outfit` nor `create_fit_card` is called.
 
+**On the MCP move:**
+
+I moved `search_listings` behind an MCP server in `mcp_server.py`, exposing its typed inputs through `FastMCP`.
+
+In `agent.py::run_agent`, I replaced the direct search function call with `mcp_client.call_tool("search_listings", ...)`.
+
+The search continues to return matching listing dictionaries, and the empty-search branch behaves as before. The difference is that search now runs through the MCP client/server boundary rather than being called directly.
+
+**Failure-mode testing**
+
+- **Empty search:** Tested an impossible query. The agent stopped before the model-dependent tools and returned an actionable message.
+- **Empty wardrobe:** Tested with `--empty-wardrobe`. The agent produced general styling advice rather than pretending the user owned additional clothing.
+- **Invalid model key:** Temporarily tested with an invalid Gemini API key and caching disabled. The application returned a `ModelUnavailable` message explaining how to correct `GEMINI_API_KEY`. The valid key was restored afterward.
 
 
 ---
 
 ## The Improvement
 
-<!-- What you changed, why your diagnosis pointed at it, and the after-run in
-     the same table format. One change, measured properly.
-
-     `python run_eval.py --label after` -->
-
 **What I changed:**
+
+Added one instruction to the `create_fit_card()` prompt in `tools.py`:
+
+> Do not claim the item is exclusive to a platform or make availability claims unless explicitly supported by the listing.
+
+No other agent logic or acceptance criteria were changed for this improvement.
 
 **Which failure it was meant to fix:**
 
+The baseline evaluation revealed an unsupported claim that the selected item was available "exclusively on depop." The listing data included the platform but provided no evidence of exclusivity.
+
+The issue originated during fit-card generation, where the language model introduced a claim beyond the supplied listing information.
+
 ### Run Log — After
+
+- Command: `python run_eval.py --label after`
+- Date: October 12, 2026
+- Results: `results/run_2026-10-12_1148_after.md`
+- Total runs: 30
+- Model calls: 50
+- Crashes: 0
+- Cache: disabled
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. Three-tool completion | 4/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. Empty-search handling | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. Selected-item consistency | 5/5 | Not logged | Not logged | Not logged | Not logged | Not logged | Not directly verified in after-run |
+| 4. Price and platform accuracy | 4/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Existing wardrobe usage | 4/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+
+Criterion 3 was verified through five separate mocked tests before the improvement, all passing. The prompt change only affected `create_fit_card()`, not item selection or the arguments to `suggest_outfit()`. However, the after-run trace still does not explicitly expose the item ID passed between tools, so the after-run itself cannot independently establish the five ID comparisons.
+
+Criterion 5 outputs showed the new marketplace item being combined with existing wardrobe pieces. The full generated outfits are preserved in the after-run results file.
+
+### Before and After Comparison
+
+| Measurement | Before | After |
+|---|---|---|
+| Successful three-tool flow | 5/5 | 5/5 |
+| Correct early stopping | 5/5 | 5/5 |
+| Correct price and platform | 5/5 | 5/5 |
+| Unsupported exclusivity claims in Criterion 4 | 1/5 | 0/5 |
+| Unverified availability language in Criterion 4 | Not fully assessed | 3/5 |
 
 **Did it help, and how do I know:**
 
-<!-- If it made things worse, say that. Honestly reported, that earns full
-     credit and is more interesting than one that worked. -->
+The original acceptance criteria continued to perform well after the change.
 
+Within the Criterion 4 samples, unsupported exclusivity claims decreased from one before the improvement to zero afterward.
 
+However, three after-run captions still used phrases implying current availability, such as "available now" or "grab this piece now," without a separate availability check.
+
+The prompt change therefore appears to have improved exclusivity wording, but it did not completely prevent unsupported availability claims. Because the sample is small and generation is stochastic, the results do not prove causation or broad reliability.
 
 ---
 
 ## What's Still Broken
 
-<!-- For each criterion still missed: what you'd do, and why you stopped where
-     you did. "I ran out of time" is fine if it's true. Pretending nothing is
-     left is not. -->
+All five original criteria met their targets in the baseline evaluation, although Criterion 3 required a separate mocked test because the evaluation trace did not capture the item ID handoff.
 
+The remaining limitations are:
 
+1. **Unsupported availability claims:** `tools.py::create_fit_card()` sometimes produces phrases such as "available now" even though the listing data does not independently verify current availability. A future improvement would add output validation or a more structured generation process.
+
+2. **Limited scenario diversity:** Most successful-path evaluations use the same vintage graphic tee query and example wardrobe. Additional queries, listing types, and wardrobe configurations would provide a stronger reliability assessment.
+
+3. **Incomplete ID observability:** `trace.py` summarizes dictionary keys rather than recording the selected and received item IDs. Future tests should explicitly assert or record these identifiers during each evaluation run.
+
+4. **Model-dependent output variability:** Prompt changes can reduce errors without guaranteeing their elimination. Larger evaluation sets and automated grounding checks would make comparisons more reliable.
+
+I stopped after one targeted prompt change to preserve the assignment's before/after comparison and avoid introducing additional unmeasured changes.
+
+---
 
 <!-- ═════════════════════════════════════════════════════════════════════
 
