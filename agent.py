@@ -75,6 +75,7 @@ def run_agent(query: str, wardrobe: dict) -> dict:
       8. Return the completed session.
     """
 
+    trace.start_trace()
     session = new_session(query, wardrobe)
 
     # Parse the query
@@ -118,6 +119,12 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     },
     )
 
+    trace.step(
+    "search_listings (via MCP)",
+    inputs=session["parsed"],
+    returned=session["search_results"],
+    )
+
     # Branch: stop if nothing was found
     if not session["search_results"]:
         session["error"] = (
@@ -135,10 +142,28 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         session["wardrobe"],
     )
 
+    trace.step(
+    "suggest_outfit",
+    inputs={
+        "new_item": session["selected_item"],
+        "wardrobe": session["wardrobe"],
+    },
+    returned=session["outfit_suggestion"],
+    )
+
     # Create a fit card using the outfit suggestion
     session["fit_card"] = create_fit_card(
         session["outfit_suggestion"],
         session["selected_item"],
+    )
+
+    trace.step(
+    "create_fit_card",
+    inputs={
+        "outfit": session["outfit_suggestion"],
+        "new_item": session["selected_item"],
+    },
+    returned=session["fit_card"],
     )
 
     return session

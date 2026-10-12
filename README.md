@@ -271,15 +271,19 @@ that produced it:
 
 ## Loop Trace
 
-<!-- One full run, printed step by step, with the MCP call visible in it.
+Command: `python app.py ask 'vintage graphic tee under $30' --trace`
 
-     `python app.py ask '...' --trace` once you've added the trace.step()
-     calls in Milestone 2.
-
-     Worth pasting BOTH the happy path and the empty-search path. The empty
-     one should be visibly shorter, because it stops. If your two traces are
-     the same length, your branch isn't working — and this is the fastest way
-     anyone will ever find that out. -->
+```text
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 10 items: Y2K Baby Tee — Butterfly Print, Graphic Tee — 2003 Tour Bootleg Style, Vintage Band Tee — Faded Grey … +7 more
+[2] suggest_outfit
+      in:  dict with keys: new_item, wardrobe
+      out: **Outfit Recommendation:**  *   **Top:** Y2K Baby Tee — Butterfly Print (New Item) *   **Bottoms:** Baggy stra…
+[3] create_fit_card
+      in:  dict with keys: outfit, new_item
+      out: Channel total Y2K nostalgia with this fitted butterfly baby tee, available now on Depop for just $18.00. Paire…
+```
 
 **Happy path**
 
